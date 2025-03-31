@@ -20,7 +20,6 @@ function useSocket() {
       };
 
       ws.onclose = () => {
-        console.log(ws);
         setSocket(null);
 
         if (reconnectRef.current) {
