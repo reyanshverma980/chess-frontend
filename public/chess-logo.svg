@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#1e1e1e" />
+  <circle cx="100" cy="100" r="85" fill="#2d2d2d" />
+  
+  <!-- Chess board pattern -->
+  <g transform="translate(50, 50) scale(0.5)">
+    <!-- Light squares -->
+    <rect x="0" y="0" width="50" height="50" fill="#e9edcc" />
+    <rect x="100" y="0" width="50" height="50" fill="#e9edcc" />
+    <rect x="50" y="50" width="50" height="50" fill="#e9edcc" />
+    <rect x="150" y="50" width="50" height="50" fill="#e9edcc" />
+    <rect x="0" y="100" width="50" height="50" fill="#e9edcc" />
+    <rect x="100" y="100" width="50" height="50" fill="#e9edcc" />
+    <rect x="50" y="150" width="50" height="50" fill="#e9edcc" />
+    <rect x="150" y="150" width="50" height="50" fill="#e9edcc" />
+    
+    <!-- Dark squares -->
+    <rect x="50" y="0" width="50" height="50" fill="#4ade80" />
+    <rect x="150" y="0" width="50" height="50" fill="#4ade80" />
+    <rect x="0" y="50" width="50" height="50" fill="#4ade80" />
+    <rect x="100" y="50" width="50" height="50" fill="#4ade80" />
+    <rect x="50" y="100" width="50" height="50" fill="#4ade80" />
+    <rect x="150" y="100" width="50" height="50" fill="#4ade80" />
+    <rect x="0" y="150" width="50" height="50" fill="#4ade80" />
+    <rect x="100" y="150" width="50" height="50" fill="#4ade80" />
+  </g>
+  
+  <!-- Knight chess piece -->
+  <g transform="translate(65, 55) scale(0.35)">
+    <path d="M150,30c-5,0-10,0-15,0c-5,0-10,0-15,0c-5,0-10,0-15,0c-5,0-10,0-15,0c-5,0-10,0-15,0c-5,0-10,0-15,0
+      c0,5,0,10,0,15c0,5,0,10,0,15c0,5,0,10,0,15c0,5,0,10,0,15c0,5,0,10,0,15c0,5,0,10,0,15c0,5,0,10,0,15c0,5,0,10,0,15
+      c0,5,0,10,0,15c0,5,0,10,0,15c5,0,10,0,15,0c5,0,10,0,15,0c5,0,10,0,15,0c5,0,10,0,15,0c5,0,10,0,15,0c5,0,10,0,15,0
+      c0-5,0-10,0-15c0-5,0-10,0-15c0-5,0-10,0-15c0-5,0-10,0-15c0-5,0-10,0-15c0-5,0-10,0-15c0-5,0-10,0-15c0-5,0-10,0-15
+      c0-5,0-10,0-15C150,40,150,35,150,30z" fill="#ffffff"/>
+    
+    <!-- Knight details -->
+    <path d="M120,60c-5,0-10,0-15,0c-5,0-10,0-15,0c-5,0-10,0-15,0c-5,0-10,0-15,0c0,5,0,10,0,15c0,5,0,10,0,15
+      c0,5,0,10,0,15c0,5,0,10,0,15c5,0,10,0,15,0c5,0,10,0,15,0c5,0,10,0,15,0c5,0,10,0,15,0c0-5,0-10,0-15c0-5,0-10,0-15
+      c0-5,0-10,0-15C120,70,120,65,120,60z" fill="#1e1e1e"/>
+    
+    <!-- Knight's eye -->
+    <circle cx="95" cy="75" r="5" fill="#4ade80"/>
+    
+    <!-- Knight's mane -->
+    <path d="M150,30c-5,0-10,0-15,0c-5,0-10,0-15,0c-5,0-10,0-15,0c-5,0-10,0-15,0c-5,0-10,0-15,0c-5,0-10,0-15,0
+      c0,5,0,10,0,15c0,5,0,10,0,15c5,0,10,0,15,0c5,0,10,0,15,0c5,0,10,0,15,0c5,0,10,0,15,0c5,0,10,0,15,0c5,0,10,0,15,0
+      c0-5,0-10,0-15C150,40,150,35,150,30z" fill="#4ade80"/>
+  </g>
+  
+  <!-- Text "ChessGame" -->
+  <text x="100" y="155" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#ffffff">ChessGame</text>
+</svg>
+
