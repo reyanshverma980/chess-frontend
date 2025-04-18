@@ -7,7 +7,7 @@ export default function LoginPage() {
   const { user } = useAuth();
 
   if (user?.userId) {
-    return <Navigate to="/" />;
+    return <Navigate to="/play-online" />;
   }
 
   return (

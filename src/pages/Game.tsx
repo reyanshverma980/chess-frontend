@@ -1,21 +1,19 @@
 import { useEffect, useState } from "react";
-import { Chess, Square } from "chess.js";
+import { Chess, ShortMove, Square } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import useSocket from "../hooks/useSocket";
-import { useNavigate } from "react-router";
 import GameOver from "@/components/GameOver";
 import { SearchLoader } from "@/components/Loader";
-import { Piece } from "react-chessboard/dist/chessboard/types";
+import {
+  Piece,
+  PromotionPieceOption,
+} from "react-chessboard/dist/chessboard/types";
+import { PromotionPiece } from "@/utils/chess";
+import { WSMessageType } from "@/types/websocket";
+import SocketStatus from "@/components/SocketStatus";
+import { useNavigate } from "react-router";
 
-const INIT_GAME = "init_game";
-const MOVE = "move";
-const GAME_OVER = "game_over";
-const PLAYER_LEFT = "player_left";
-
-type MoveType = {
-  from: Square;
-  to: Square;
-};
+type Result = "win" | "lose" | "draw" | undefined;
 
 const Game = () => {
   const socket = useSocket();
@@ -26,7 +24,7 @@ const Game = () => {
     "start"
   );
   const [side, setSide] = useState<"white" | "black">("white");
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState<Result>();
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
@@ -36,34 +34,39 @@ const Game = () => {
       const message = JSON.parse(event.data);
 
       switch (message.type) {
-        case INIT_GAME:
+        case WSMessageType.INIT_GAME: {
           setGameStatus("active");
           setBoard(new Chess());
           setSide(message.payload.color);
           setIsSearching(false);
           navigate(`/game/${message.payload.gameId}`);
           break;
+        }
 
-        case MOVE: {
-          const { from, to } = message.payload.move;
-          board.move({ from, to });
+        case WSMessageType.MOVE: {
+          const { from, to, promotion } = message.payload.move;
+          board.move({ from, to, promotion });
           setBoard(new Chess(board.fen()));
           break;
         }
 
-        case GAME_OVER:
+        case WSMessageType.GAME_OVER: {
           setGameStatus("over");
-          console.log(message.payload.result);
           if (message.payload.result === "draw") {
             setResult("draw");
           } else {
             setResult(message.payload.result === side ? "win" : "lose");
           }
           break;
+        }
 
-        case PLAYER_LEFT:
-          setGameStatus("over");
-          setResult(message.payload.result && "win");
+        case WSMessageType.PLAYER_LEFT: {
+          if (gameStatus !== "over") {
+            setGameStatus("over");
+            setResult("win");
+          }
+          break;
+        }
 
         default:
           break;
@@ -78,10 +81,10 @@ const Game = () => {
     };
   }, [socket, board, navigate]);
 
-  function makeMove(move: MoveType) {
+  function makeMove(move: ShortMove) {
     const result = board.move(move);
-    setBoard(new Chess(board.fen())); // Update the board state
-    return result; // null if the move was illegal, the move object if the move was legal
+    setBoard(new Chess(board.fen()));
+    return result;
   }
 
   function onDrop(sourceSquare: Square, targetSquare: Square) {
@@ -94,7 +97,7 @@ const Game = () => {
 
     socket?.send(
       JSON.stringify({
-        type: MOVE,
+        type: WSMessageType.MOVE,
         payload: {
           move: {
             from: sourceSquare,
@@ -107,32 +110,57 @@ const Game = () => {
     return true;
   }
 
-  const isPieceDraggable = ({
-    piece,
-    sourceSquare,
-  }: {
-    piece: Piece;
-    sourceSquare: Square;
-  }) => {
-    if (piece[0] === side[0]) {
+  const onPromotion = (
+    piece?: PromotionPieceOption,
+    from?: Square,
+    to?: Square
+  ) => {
+    if (!piece || !from || !to) return false;
+    const move = makeMove({
+      from,
+      to,
+      promotion: piece[1].toLowerCase() as PromotionPiece,
+    });
+
+    if (!move) return false;
+
+    socket?.send(
+      JSON.stringify({
+        type: WSMessageType.MOVE,
+        payload: {
+          move: {
+            from,
+            to,
+            promotion: piece[1].toLowerCase() as PromotionPiece,
+          },
+        },
+      })
+    );
+
+    return true;
+  };
+
+  const isPieceDraggable = ({ piece }: { piece: Piece }) => {
+    if (piece[0] === side[0] && piece[0] === board.turn()) {
       return true;
     }
 
     return false;
   };
 
-  if (!socket) return <div>Connecting...</div>;
+  if (!socket) return <SocketStatus />;
 
   return isSearching ? (
     <SearchLoader />
   ) : (
     <div className="flex flex-col lg:flex-row items-center justify-center min-h-screen p-6 pt-18">
-      <div className="w-full max-w-xl shadow-lg rounded-2xl bg-white p-3">
+      <div className="w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl  bg-white p-3">
         <Chessboard
           position={board.fen()}
           onPieceDrop={onDrop}
+          onPromotionPieceSelect={onPromotion}
           boardOrientation={side}
-          arePiecesDraggable={gameStatus === "active" ? true : false}
+          arePiecesDraggable={gameStatus === "active"}
           isDraggablePiece={isPieceDraggable}
         />
       </div>
@@ -148,7 +176,7 @@ const Game = () => {
               setIsSearching(true);
               socket.send(
                 JSON.stringify({
-                  type: INIT_GAME,
+                  type: WSMessageType.INIT_GAME,
                 })
               );
             }}
@@ -158,7 +186,7 @@ const Game = () => {
         </div>
       )}
 
-      <GameOver result={result} status={gameStatus} />
+      {gameStatus === "over" && <GameOver result={result} />}
     </div>
   );
 };

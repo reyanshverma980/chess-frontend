@@ -1,30 +1,44 @@
-import { useNavigate } from "react-router";
-import useSocket from "../hooks/useSocket";
+import { Link } from "react-router-dom";
 
 const Home = () => {
-  const socket = useSocket();
-  const navigate = useNavigate();
-
-  if (!socket) return <div className="text-white">Connecting...</div>;
-
   return (
-    <div className="flex flex-col lg:flex-row items-center justify-center min-h-screen p-6">
-      <img src="/chess-board.svg" alt="Chess Board" />
-
-      <div className="w-full max-w-2xl  flex flex-col items-center gap-4 mt-10 lg:mt-0">
-        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white">
-          Play Chess Online
+    <div className="min-h-screen bg-zinc-900 text-white flex flex-col">
+      {/* Header */}
+      <header className="p-6 border-b border-zinc-800 text-center">
+        <h1 className="text-3xl font-bold tracking-wide text-green-500">
+          ♟️ ChessX
         </h1>
+      </header>
 
-        <button
-          className="w-fit bg-[#3A813E] text-white text-xl font-bold px-8 py-4 rounded-2xl shadow-lg flex items-center gap-3 hover:bg-[#2F6A32] hover:scale-105 transition-all duration-300 ease-in-out hover:shadow-xl active:scale-95"
-          onClick={() => {
-            navigate("/game");
-          }}
-        >
-          Play
-        </button>
-      </div>
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col items-center justify-center text-center px-4">
+        <h2 className="text-4xl sm:text-5xl font-extrabold mb-6">
+          Welcome to ChessX
+        </h2>
+        <p className="text-zinc-400 max-w-xl text-lg mb-10">
+          Choose a mode and start playing right away.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-6 w-full max-w-md">
+          <Link
+            to="/play-computer"
+            className="flex-1 rounded-xl bg-zinc-950 border border-zinc-800 p-6 text-lg font-semibold hover:border-green-500 hover:shadow-green-600/20 shadow-md transition flex justify-center items-center"
+          >
+            🤖 Play vs Computer
+          </Link>
+          <Link
+            to="/play-online"
+            className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white p-6 text-lg font-semibold transition flex justify-center items-center"
+          >
+            🌐 Play Online
+          </Link>
+        </div>
+      </main>
+
+      {/* Optional Footer */}
+      <footer className="p-4 text-center text-zinc-500 text-sm border-t border-zinc-800">
+        Built with ❤️ by ChessX
+      </footer>
     </div>
   );
 };

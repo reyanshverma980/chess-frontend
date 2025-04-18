@@ -5,7 +5,9 @@ import { useNavigate } from "react-router";
 import { motion } from "framer-motion";
 import { Handshake, Trophy, XCircle } from "lucide-react";
 
-const GameOver = ({ result, status }: { result: string; status: string }) => {
+type Result = "win" | "lose" | "draw" | undefined;
+
+const GameOver = ({ result }: { result: Result }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -13,7 +15,7 @@ const GameOver = ({ result, status }: { result: string; status: string }) => {
   };
 
   return (
-    <Dialog open={status === "over"}>
+    <Dialog defaultOpen>
       <DialogContent className="absolute bg-white w-full max-w-md p-6 rounded-2xl shadow-xl border border-gray-200 z-10 text-center animate-fade-in">
         <DialogHeader>
           <motion.div
@@ -31,7 +33,7 @@ const GameOver = ({ result, status }: { result: string; status: string }) => {
             )}
 
             <DialogTitle className="text-2xl font-bold">
-              {result === "draw" ? "DRAW" : `YOU ${result.toUpperCase()}`}
+              {result === "draw" ? "DRAW" : `YOU ${result?.toUpperCase()}`}
             </DialogTitle>
           </motion.div>
         </DialogHeader>

@@ -82,7 +82,7 @@ export function SignupForm() {
         });
 
         setTimeout(() => {
-          navigate("/");
+          navigate("/play-online");
         }, 2000);
       } else {
         if (response.message) {

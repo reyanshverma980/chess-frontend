@@ -1,8 +1,15 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { SignupForm } from "../components/SignupForm";
 import Header from "@/components/Header";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SignupPage() {
+  const { user } = useAuth();
+
+  if (user?.userId) {
+    return <Navigate to="/play-online" />;
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-zinc-900 text-white">
       <Header />
