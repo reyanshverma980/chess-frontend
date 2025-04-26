@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Chess, ShortMove, Square } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import useSocket from "../hooks/useSocket";
@@ -13,30 +13,46 @@ import { WSMessageType } from "@/types/websocket";
 import SocketStatus from "@/components/SocketStatus";
 import { useNavigate } from "react-router";
 
-type Result = "win" | "lose" | "draw" | undefined;
+enum GameStatus {
+  Start = "start",
+  Active = "active",
+  Over = "over",
+}
+
+enum Result {
+  Win = "win",
+  Lose = "lose",
+  Draw = "draw",
+}
 
 const Game = () => {
   const socket = useSocket();
   const navigate = useNavigate();
 
-  const [board, setBoard] = useState(new Chess());
-  const [gameStatus, setGameStatus] = useState<"start" | "active" | "over">(
-    "start"
-  );
+  const [fen, setFen] = useState(new Chess().fen());
+  const [gameStatus, setGameStatus] = useState<GameStatus>(GameStatus.Start);
   const [side, setSide] = useState<"white" | "black">("white");
   const [result, setResult] = useState<Result>();
   const [isSearching, setIsSearching] = useState(false);
 
-  useEffect(() => {
-    if (!socket) return;
+  const gameStatusRef = useRef(gameStatus);
+  const boardRef = useRef(new Chess(fen));
 
-    const handleMessage = (event: MessageEvent) => {
+  useEffect(() => {
+    gameStatusRef.current = gameStatus;
+  }, [gameStatus]);
+
+  useEffect(() => {
+    boardRef.current = new Chess(fen);
+  }, [fen]);
+
+  const handleMessage = useCallback(
+    (event: MessageEvent) => {
       const message = JSON.parse(event.data);
 
       switch (message.type) {
         case WSMessageType.INIT_GAME: {
-          setGameStatus("active");
-          setBoard(new Chess());
+          setGameStatus(GameStatus.Active);
           setSide(message.payload.color);
           setIsSearching(false);
           navigate(`/game/${message.payload.gameId}`);
@@ -45,25 +61,27 @@ const Game = () => {
 
         case WSMessageType.MOVE: {
           const { from, to, promotion } = message.payload.move;
-          board.move({ from, to, promotion });
-          setBoard(new Chess(board.fen()));
+          boardRef.current.move({ from, to, promotion });
+          setFen(boardRef.current.fen());
           break;
         }
 
         case WSMessageType.GAME_OVER: {
-          setGameStatus("over");
-          if (message.payload.result === "draw") {
-            setResult("draw");
+          setGameStatus(GameStatus.Over);
+          if (message.payload.result === Result.Draw) {
+            setResult(Result.Draw);
           } else {
-            setResult(message.payload.result === side ? "win" : "lose");
+            setResult(
+              message.payload.result === side ? Result.Win : Result.Lose
+            );
           }
           break;
         }
 
         case WSMessageType.PLAYER_LEFT: {
-          if (gameStatus !== "over") {
-            setGameStatus("over");
-            setResult("win");
+          if (gameStatusRef.current !== GameStatus.Over) {
+            setGameStatus(GameStatus.Over);
+            setResult(Result.Win);
           }
           break;
         }
@@ -71,7 +89,12 @@ const Game = () => {
         default:
           break;
       }
-    };
+    },
+    [navigate, side]
+  );
+
+  useEffect(() => {
+    if (!socket) return;
 
     socket.addEventListener("message", handleMessage);
 
@@ -79,11 +102,11 @@ const Game = () => {
     return () => {
       socket.removeEventListener("message", handleMessage);
     };
-  }, [socket, board, navigate]);
+  }, [socket, handleMessage]);
 
   function makeMove(move: ShortMove) {
-    const result = board.move(move);
-    setBoard(new Chess(board.fen()));
+    const result = boardRef.current.move(move);
+    setFen(boardRef.current.fen());
     return result;
   }
 
@@ -141,7 +164,7 @@ const Game = () => {
   };
 
   const isPieceDraggable = ({ piece }: { piece: Piece }) => {
-    if (piece[0] === side[0] && piece[0] === board.turn()) {
+    if (piece[0] === side[0] && piece[0] === boardRef.current.turn()) {
       return true;
     }
 
@@ -156,7 +179,7 @@ const Game = () => {
     <div className="flex flex-col lg:flex-row items-center justify-center min-h-screen p-6 pt-18">
       <div className="w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl  bg-white p-3">
         <Chessboard
-          position={board.fen()}
+          position={fen}
           onPieceDrop={onDrop}
           onPromotionPieceSelect={onPromotion}
           boardOrientation={side}
