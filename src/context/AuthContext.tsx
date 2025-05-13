@@ -1,4 +1,3 @@
-import { User } from "lucide-react";
 import {
   createContext,
   ReactNode,
@@ -41,16 +40,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   useEffect(() => {
-    if (token) {
-      const decodedToken: any = jwtDecode(token);
-      const username = localStorage.getItem("username")!;
-      if (decodedToken.exp * 1000 < Date.now()) {
-        logout();
-      } else {
-        setUser({ userId: decodedToken.userId, username });
-      }
-    }
+    verifyToken();
   }, [token]);
+
+  const verifyToken = async () => {
+    if (!token) return;
+
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/verify`,
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (res.data.status === "success" && res.data.user) {
+        setUser({ userId: res.data.user.id, username: res.data.user.username });
+      } else {
+        logout();
+      }
+    } catch (error) {
+      console.log("Token verification failed");
+      logout();
+    }
+  };
 
   const signup = async (username: string, password: string) => {
     try {
@@ -69,11 +86,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       );
       const newToken = res.data.token;
 
-      localStorage.setItem("username", username);
       localStorage.setItem("token", newToken);
       setToken(newToken);
       const decodedToken: any = jwtDecode(newToken);
-      setUser({ userId: decodedToken.userId, username });
+      setUser({ userId: decodedToken.userId, username: decodedToken.username });
 
       return { success: true };
     } catch (err: any) {
@@ -101,11 +117,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       );
       const newToken = res.data.token;
 
-      localStorage.setItem("username", username);
       localStorage.setItem("token", newToken);
       setToken(newToken);
       const decodedToken: any = jwtDecode(newToken);
-      setUser({ userId: decodedToken.userId, username });
+      setUser({ userId: decodedToken.userId, username: decodedToken.username });
 
       return { success: true };
     } catch (err: any) {

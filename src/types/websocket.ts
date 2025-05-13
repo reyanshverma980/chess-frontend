@@ -3,4 +3,5 @@ export enum WSMessageType {
   MOVE = "move",
   GAME_OVER = "game_over",
   PLAYER_LEFT = "player_left",
+  RECONNECT = "reconnect",
 }
