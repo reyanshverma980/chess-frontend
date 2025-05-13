@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Chess, ShortMove, Square } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import useSocket from "../hooks/useSocket";
@@ -29,80 +29,79 @@ const Game = () => {
   const socket = useSocket();
   const navigate = useNavigate();
 
-  const [fen, setFen] = useState(new Chess().fen());
+  const [fen, setFen] = useState<string | undefined>();
   const [gameStatus, setGameStatus] = useState<GameStatus>(GameStatus.Start);
   const [side, setSide] = useState<"white" | "black">("white");
   const [result, setResult] = useState<Result>();
   const [isSearching, setIsSearching] = useState(false);
 
+  const boardRef = useRef(new Chess());
   const gameStatusRef = useRef(gameStatus);
-  const boardRef = useRef(new Chess(fen));
+  const sideRef = useRef<"white" | "black">("white");
 
   useEffect(() => {
     gameStatusRef.current = gameStatus;
   }, [gameStatus]);
 
   useEffect(() => {
-    boardRef.current = new Chess(fen);
+    if (fen) {
+      boardRef.current.load(fen);
+    }
   }, [fen]);
 
-  const handleMessage = useCallback(
-    (event: MessageEvent) => {
-      const message = JSON.parse(event.data);
-
-      switch (message.type) {
-        case WSMessageType.INIT_GAME: {
-          setGameStatus(GameStatus.Active);
-          setSide(message.payload.color);
-          setIsSearching(false);
-          navigate(`/game/${message.payload.gameId}`);
-          break;
-        }
-
-        case WSMessageType.MOVE: {
-          const { from, to, promotion } = message.payload.move;
-          boardRef.current.move({ from, to, promotion });
-          setFen(boardRef.current.fen());
-          break;
-        }
-
-        case WSMessageType.GAME_OVER: {
-          setGameStatus(GameStatus.Over);
-          if (message.payload.result === Result.Draw) {
-            setResult(Result.Draw);
-          } else {
-            setResult(
-              message.payload.result === side ? Result.Win : Result.Lose
-            );
-          }
-          break;
-        }
-
-        case WSMessageType.PLAYER_LEFT: {
-          if (gameStatusRef.current !== GameStatus.Over) {
-            setGameStatus(GameStatus.Over);
-            setResult(Result.Win);
-          }
-          break;
-        }
-
-        default:
-          break;
-      }
-    },
-    [navigate, side]
-  );
+  useEffect(() => {
+    sideRef.current = side;
+  }, [side]);
 
   useEffect(() => {
     if (!socket) return;
 
-    socket.addEventListener("message", handleMessage);
+    socket.on(WSMessageType.INIT_GAME, (data) => {
+      setGameStatus(GameStatus.Active);
+      setSide(data.payload.side);
+      boardRef.current = new Chess();
+      setFen(boardRef.current.fen());
+      setIsSearching(false);
+      navigate(`/game/${data.payload.gameId}`);
+    });
 
-    // Cleanup on unmount
+    socket.on(WSMessageType.RECONNECT, (data) => {
+      setGameStatus(GameStatus.Active);
+      setSide(data.payload.side);
+      setFen(data.payload.fen);
+    });
+
+    socket.on(WSMessageType.MOVE, (data) => {
+      const { from, to, promotion } = data.payload.move;
+      boardRef.current.move({ from, to, promotion });
+      setFen(boardRef.current.fen());
+    });
+
+    socket.on(WSMessageType.GAME_OVER, (data) => {
+      const gameResult = data.payload.result;
+      setGameStatus(GameStatus.Over);
+      if (gameResult === Result.Draw) {
+        setResult(Result.Draw);
+      } else {
+        setResult(gameResult === sideRef.current ? Result.Win : Result.Lose);
+      }
+    });
+
+    socket.on(WSMessageType.PLAYER_LEFT, () => {
+      if (gameStatusRef.current !== GameStatus.Over) {
+        setGameStatus(GameStatus.Over);
+        setResult(Result.Win);
+      }
+    });
+
     return () => {
-      socket.removeEventListener("message", handleMessage);
+      socket.off(WSMessageType.INIT_GAME);
+      socket.off(WSMessageType.RECONNECT);
+      socket.off(WSMessageType.MOVE);
+      socket.off(WSMessageType.GAME_OVER);
+      socket.off(WSMessageType.PLAYER_LEFT);
     };
-  }, [socket, handleMessage]);
+  }, [socket]);
 
   function makeMove(move: ShortMove) {
     const result = boardRef.current.move(move);
@@ -118,17 +117,14 @@ const Game = () => {
 
     if (!move) return false;
 
-    socket?.send(
-      JSON.stringify({
-        type: WSMessageType.MOVE,
-        payload: {
-          move: {
-            from: sourceSquare,
-            to: targetSquare,
-          },
+    socket?.emit(WSMessageType.MOVE, {
+      payload: {
+        move: {
+          from: sourceSquare,
+          to: targetSquare,
         },
-      })
-    );
+      },
+    });
 
     return true;
   }
@@ -147,24 +143,21 @@ const Game = () => {
 
     if (!move) return false;
 
-    socket?.send(
-      JSON.stringify({
-        type: WSMessageType.MOVE,
-        payload: {
-          move: {
-            from,
-            to,
-            promotion: piece[1].toLowerCase() as PromotionPiece,
-          },
+    socket?.emit(WSMessageType.MOVE, {
+      payload: {
+        move: {
+          from,
+          to,
+          promotion: piece[1].toLowerCase() as PromotionPiece,
         },
-      })
-    );
+      },
+    });
 
     return true;
   };
 
   const isPieceDraggable = ({ piece }: { piece: Piece }) => {
-    if (piece[0] === side[0] && piece[0] === boardRef.current.turn()) {
+    if (piece[0] === side?.[0] && piece[0] === boardRef.current.turn()) {
       return true;
     }
 
@@ -172,6 +165,7 @@ const Game = () => {
   };
 
   if (!socket) return <SocketStatus />;
+  if (!fen) return <SearchLoader />;
 
   return isSearching ? (
     <SearchLoader />
@@ -197,11 +191,7 @@ const Game = () => {
             className="w-fit bg-[#3A813E] text-white text-xl font-bold px-8 py-4 rounded-2xl shadow-lg flex items-center gap-3 hover:bg-[#2F6A32] hover:scale-105 transition-all duration-300 ease-in-out hover:shadow-xl active:scale-95"
             onClick={() => {
               setIsSearching(true);
-              socket.send(
-                JSON.stringify({
-                  type: WSMessageType.INIT_GAME,
-                })
-              );
+              socket.emit(WSMessageType.INIT_GAME);
             }}
           >
             Start
