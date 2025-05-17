@@ -1,11 +1,14 @@
-import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
 const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:5001";
 
-function useSocket() {
-  const { user } = useAuth();
+type User = {
+  userId: string;
+  username: string;
+};
+
+function useSocket(user: User | null) {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {

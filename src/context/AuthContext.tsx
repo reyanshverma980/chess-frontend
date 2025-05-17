@@ -7,6 +7,8 @@ import {
 } from "react";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
+import useSocket from "@/hooks/useSocket";
+import { Socket } from "socket.io-client";
 
 type User = {
   userId: string;
@@ -27,6 +29,7 @@ type AuthContextType = {
     password: string
   ) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
+  socket: Socket | null;
 };
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
@@ -38,6 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(
     localStorage.getItem("token")
   );
+  const socket = useSocket(user);
 
   useEffect(() => {
     verifyToken();
@@ -138,7 +142,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, signup, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, socket, token, signup, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
