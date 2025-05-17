@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Chess, ShortMove, Square } from "chess.js";
 import { Chessboard } from "react-chessboard";
-import useSocket from "../hooks/useSocket";
 import GameOver from "@/components/GameOver";
 import { SearchLoader } from "@/components/Loader";
 import {
@@ -12,6 +11,7 @@ import { PromotionPiece } from "@/utils/chess";
 import { WSMessageType } from "@/types/websocket";
 import SocketStatus from "@/components/SocketStatus";
 import { useNavigate } from "react-router";
+import { useAuth } from "@/context/AuthContext";
 
 enum GameStatus {
   Start = "start",
@@ -26,14 +26,14 @@ enum Result {
 }
 
 const Game = () => {
-  const socket = useSocket();
+  const { socket } = useAuth();
   const navigate = useNavigate();
 
   const [fen, setFen] = useState<string | undefined>();
   const [gameStatus, setGameStatus] = useState<GameStatus>(GameStatus.Start);
   const [side, setSide] = useState<"white" | "black">("white");
   const [result, setResult] = useState<Result>();
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSearching, setIsSearching] = useState(true);
 
   const boardRef = useRef(new Chess());
   const gameStatusRef = useRef(gameStatus);
@@ -57,6 +57,7 @@ const Game = () => {
     if (!socket) return;
 
     socket.on(WSMessageType.INIT_GAME, (data) => {
+      socket.emit(WSMessageType.JOIN_GAME_ROOM, data.payload.gameId);
       setGameStatus(GameStatus.Active);
       setSide(data.payload.side);
       boardRef.current = new Chess();
@@ -66,6 +67,7 @@ const Game = () => {
     });
 
     socket.on(WSMessageType.RECONNECT, (data) => {
+      setIsSearching(false);
       setGameStatus(GameStatus.Active);
       setSide(data.payload.side);
       setFen(data.payload.fen);
@@ -181,23 +183,6 @@ const Game = () => {
           isDraggablePiece={isPieceDraggable}
         />
       </div>
-
-      {gameStatus === "start" && (
-        <div className="w-full max-w-2xl flex flex-col items-center justify-center gap-8 mt-10 lg:mt-0">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white">
-            Find a Match
-          </h1>
-          <button
-            className="w-fit bg-[#3A813E] text-white text-xl font-bold px-8 py-4 rounded-2xl shadow-lg flex items-center gap-3 hover:bg-[#2F6A32] hover:scale-105 transition-all duration-300 ease-in-out hover:shadow-xl active:scale-95"
-            onClick={() => {
-              setIsSearching(true);
-              socket.emit(WSMessageType.INIT_GAME);
-            }}
-          >
-            Start
-          </button>
-        </div>
-      )}
 
       {gameStatus === "over" && <GameOver result={result} />}
     </div>

@@ -1,9 +1,10 @@
-import { useNavigate } from "react-router";
-import useSocket from "../hooks/useSocket";
 import SocketStatus from "@/components/SocketStatus";
+import { useAuth } from "@/context/AuthContext";
+import { WSMessageType } from "@/types/websocket";
+import { useNavigate } from "react-router";
 
 const PlayOnline = () => {
-  const socket = useSocket();
+  const { socket } = useAuth();
   const navigate = useNavigate();
 
   if (!socket) return <SocketStatus />;
@@ -20,6 +21,7 @@ const PlayOnline = () => {
         <button
           className="w-fit bg-[#3A813E] text-white text-xl font-bold px-8 py-4 rounded-2xl shadow-lg flex items-center gap-3 hover:bg-[#2F6A32] hover:scale-105 transition-all duration-300 ease-in-out hover:shadow-xl active:scale-95"
           onClick={() => {
+            socket.emit(WSMessageType.INIT_GAME);
             navigate("/game");
           }}
         >
